@@ -5,7 +5,7 @@
   cursor: pointer;
   transition: 0.2s;
 
-  &:disabled{
+  &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
@@ -16,7 +16,7 @@
   /* color: white; */
 }
 
-.btn.primary:hover{
+.btn.primary:hover {
   opacity: 0.5;
 }
 
@@ -31,113 +31,123 @@
   /* color: var(--text-primary, black); */
 }
 
-.btn.secondary{
-    border: 1px solid var(--border-primary, gray);
-    background: transparent;
-    /* color: var(--text-primary, black); */
-    transition: border 0.2s all;
+.btn.secondary {
+  border: 1px solid var(--border-primary, gray);
+  background: transparent;
+  /* color: var(--text-primary, black); */
+  transition: border 0.2s all;
 }
 
-.btn.secondary:hover{
-    border: 1px #007bff solid;
+.btn.secondary:hover {
+  border: 1px #007bff solid;
 }
-
 
 .ModalOverlay {
-  position: fixed; 
+  position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  display: flex; 
-  align-items: center; 
-  justify-content: center; 
-  background: rgba(0, 0, 0, 0.5); 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
   z-index: 1000;
   transition: background 0.3s ease;
 }
 
-.fade-in{
+.fade-in {
   animation: fadeIn 0.3s forwards;
 }
-.fade-out { animation: fadeOut 0.3s forwards;}
+.fade-out {
+  animation: fadeOut 0.3s forwards;
+}
 
 @keyframes fadeIn {
-  from {opacity: 0;} to {opacity: 1;}
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes fadeOut {
-  from {opacity: 1;} to {opacity: 0;}
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
-
 .ModalForm {
-    display: flex;
-    flex-wrap: wrap;
-    flex-direction: column;
-    justify-content: center;
-    align-self: center;
-    border: 1px solid var(--border-primary, #e0e0e0);
-    width: 90vw;
-    max-width: 30rem;
-    height: auto;
-    border-radius: 10px;
-    margin: 1rem;
-    padding: 0.75rem;
-    transition: transform 0.3s ease, opacity 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: column;
+  justify-content: center;
+  align-self: center;
+  border: 1px solid var(--border-primary, #e0e0e0);
+  width: 90vw;
+  max-width: 30rem;
+  height: auto;
+  border-radius: 10px;
+  margin: 1rem;
+  padding: 0.75rem;
+  transition:
+    transform 0.3s ease,
+    opacity 0.3s ease,
+    background-color 0.3s ease,
+    border-color 0.3s ease;
 }
 
 @media (min-width: 640px) {
-    .ModalForm {
-        padding: 1rem;
-        width: 30rem;
-    }
+  .ModalForm {
+    padding: 1rem;
+    width: 30rem;
+  }
 }
 
-
-.pop-in{
+.pop-in {
   transform: scale(1);
   opacity: 1;
 }
 
-.pop-out{
+.pop-out {
   transform: scale(0.8);
   opacity: 0;
 }
 
-
-
-.ModalTitle{
-    /* color: var(--text-primary, black); */
-    display: flex;
-    flex-wrap: wrap;
-    flex-direction: column;
-    transition: color 0.3s ease;
+.ModalTitle {
+  /* color: var(--text-primary, black); */
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: column;
+  transition: color 0.3s ease;
 }
 
 .ModalTitle h1 {
-    color: var(--text-primary, black) !important;
-    text-align: left !important;
-    font-weight: bold !important; 
-    transition: color 0.3s ease;
+  color: var(--text-primary, black) !important;
+  text-align: left !important;
+  font-weight: bold !important;
+  transition: color 0.3s ease;
 }
 
-.ModalTitle :nth-child{
-    text-align: left;
-    font-size: 18px;
+.ModalTitle :nth-child {
+  text-align: left;
+  font-size: 18px;
 }
 
-.ModalFooter{
-   display: flex;
-   flex-direction: row;
-   gap: 1.5rem;
-   justify-content: end;
-   justify-items: center;
+.ModalFooter {
+  display: flex;
+  flex-direction: row;
+  gap: 1.5rem;
+  justify-content: end;
+  justify-items: center;
 }
 
 @media (max-width: 480px) {
   .ModalForm {
-     width: 20rem;
-    
+    width: 20rem;
   }
 }

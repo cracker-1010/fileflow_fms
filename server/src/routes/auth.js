@@ -26,9 +26,9 @@ router.get('/user', cookieMiddleware ,async (req,res)=>{
 
 
 router.post('/login', async (req, res) => {
-    const { password, email, remember } = req.body;
+    const { password, email, remember, userToken, idToken } = req.body;
 
-    connection.query(`Select * from userdata where  Email= ?`,[email], async (err, results) => {
+    connection.query(`Select * from userdata where  Email= ?`,[email? email : idToken], async (err, results) => {
         if (err) {
             return res.status(500).json({ message: 'Database error', error:  err.sqlState });
         };
@@ -37,25 +37,39 @@ router.post('/login', async (req, res) => {
         };
         try{
             const user = results[0];
-            const passwordMatch = await bcrypt.compare(password, user.Passkey);
+            
+            let userTokenMatch = false;
+            let passwordMatch = false;
+            
+            // Check CAS token if provided
+            if (userToken) {
+                userTokenMatch = await bcrypt.compare(user.Email, userToken);
+                console.log('CAS Token Check - Match:', userTokenMatch);
+            }
+            
+            // Check password if provided
+            if (password && user.Passkey) {
+                passwordMatch = await bcrypt.compare(password, user.Passkey);
+                console.log('Password Check - Match:', passwordMatch);
+            }
 
-            if (passwordMatch) {
-                const token = jwt.sign({Email: user.Email, UserId: user.UserId, Username: user.Username}, process.env.JWT_SECRET, { expiresIn: remember ? '7d':'1h' });
+            if (passwordMatch || userTokenMatch) {
+                const token = jwt.sign({Email: user.Email, UserId: user.UserId, Username: user.Username}, process.env.JWT_SECRET, { expiresIn: remember ? '7d':'1h' });  
                 
-
+                const isProduction = process.env.NODE_ENV === 'production';
                 
                 res.cookie('file_token', token, {
                     httpOnly: true,
-                    secure: true, // Only secure in production (HTTPS)
+                    secure: isProduction, // Only secure in production (HTTPS)
                     maxAge: remember ? 7 * 24 * 60 * 60 * 1000 : 60 * 60 * 1000, // 7 days or 1 hour
-                    sameSite: 'none'
+                    sameSite: isProduction ? 'none' : 'lax'
                 });
                 
 
                 
-                return res.status(200).json({ message: 'Login successful', user: { UserId: user.UserId, Email: user.Email, Username: user.Username } });
+                return res.status(200).json({ success: true, message: 'Login successful', user: { UserId: user.UserId, Email: user.Email, Username: user.Username } });
             } else {
-                return res.status(401).json({ message: 'Invalid email or password' });
+                return res.status(401).json({ success: false, message: 'Invalid email or password' });
             };
 
         } catch(err){
@@ -65,6 +79,79 @@ router.post('/login', async (req, res) => {
 
     });
 });
+
+router.post('/cas/login', async (req,res)=>{
+    const {userToken, remember,serviceId} = req.body;
+
+    try {
+        const response = await fetch (`http://localhost:3001/auth/verify?token=${userToken}&serviceId=${serviceId}`, {
+            method: "GET",
+        })
+
+        const responseData = await response.json();
+        console.log('CAS Login Response:', responseData);
+        if (responseData.success){
+            connection.query(`Select * from userdata where Email = ?`, [responseData.data.user.email], async (err, results)=>{
+                if (err){
+                    console.error('Database query error:', err);
+                    return res.status(500).json({ message: 'Server error', error: err });
+                }
+
+                if (results.length === 0){
+
+                    connection.query(`Insert into userdata (Email, Username) values (?,?)`, [responseData.data.user.email, responseData.data.user.username], (err, insertResult)=>{
+                        if (err){
+                            console.error('Database insert error:', err);
+                            return res.status(500).json({ message: 'Server error', error: err });
+                        }
+
+                        const user = {
+                            Email: responseData.data.user.email,
+                            Username: responseData.data.user.username
+                        };
+
+                        const token = jwt.sign({ Email: user.Email, Username: user.Username }, process.env.JWT_SECRET, { expiresIn: remember ? '7d' : '1h' });
+
+                        const isProduction = process.env.NODE_ENV === 'production';
+
+                        res.cookie('file_token', token, {
+                            httpOnly: true,
+                            secure: isProduction,
+                            maxAge: remember ? 7 * 24 * 60 * 60 * 1000 : 60 * 60 * 1000,
+                            sameSite: isProduction ? 'none' : 'lax'
+                        });
+
+                        return res.status(201).json({ success: true, message: 'User registered successfully', user });
+                    });
+
+                }
+
+                const user = results[0];
+                const token = jwt.sign({ Email: user.Email, UserId: user.UserId, Username: user.Username }, process.env.JWT_SECRET, { expiresIn: remember ? '7d' : '1h' });
+
+                const isProduction = process.env.NODE_ENV === 'production';
+
+                res.cookie('file_token', token, {
+                    httpOnly: true,
+                    secure: isProduction,
+                    maxAge: remember ? 7 * 24 * 60 * 60 * 1000 : 60 * 60 * 1000,
+                    sameSite: isProduction ? 'none' : 'lax'
+                });
+
+                return res.status(200).json({ success: true, message: 'Login successful', user: { UserId: user.UserId, Email: user.Email, Username: user.Username } });
+            })
+        }
+
+
+    } catch (err){
+        console.error('CAS Login Error:', err);
+        return res.status(500).json({ message: 'Authentication error', error: err });
+    }
+})
+
+
+
+
 
 router.post('/register', async (req, res) => {
     const { Newemail, Newusername, Newpassword } = req.body;

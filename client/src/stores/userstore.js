@@ -41,7 +41,7 @@ export const useUserStore = create(
 
         try {
           await axios.post(`${url}/api/auth/logout`, {}, { withCredentials: true })
-
+          localStorage.clear();
           set({ user: null, loading: false })
         } catch (err) {
           set({ loading: false })

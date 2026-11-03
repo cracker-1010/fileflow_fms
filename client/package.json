@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently \"npm run dev:client\" \"npm --prefix ../server run dev\"",
+    "asp" : "npm run dev:client",
     "dev:client": "vite --host",
     "build": "vite build",
     "lint": "eslint .",

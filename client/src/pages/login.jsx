@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation, useRoutes, useSearchParams } from 'react-router-dom';
 import { Mail, Eye, EyeOff, User } from 'lucide-react';
 import { useThemeManager } from '../stores/ThemeManager';
 import { useUserStore } from '../stores/userstore';
-import axios from 'axios';
+import axios from '../config/axios.js';
 import {useAppToast} from '../utils/use-toast'
 
 
@@ -24,6 +24,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const user = useUserStore((s) => s.user);
+  const setUser = useUserStore((s) => s.setUser);
   const hydrated = useUserStore((s) => s.hydrated);
   const [rememberMe, setRememberMe] = useState(false);
   
@@ -34,24 +35,60 @@ export default function Login() {
   const [emailTouched, setEmailTouched] = useState(false);
   const [passwordTouched, setPasswordTouched] = useState(false);
   const [confirmPasswordTouched, setConfirmPasswordTouched] = useState(false);
-
+  const [searchParams] = useSearchParams();
   const toast = useAppToast();
+  const hasAttemptedLoginRef = useRef(false); // Persist across re-renders
   
     useEffect(() =>{
       document.title = "FileFlow | Authentication"
+      
+      // Reset the login attempt flag when component mounts
+      // This ensures logout -> login flow works correctly
+      hasAttemptedLoginRef.current = false;
     }, []);
 
     useEffect(() => {
          
         const checkUser = async () =>{
-            if (hydrated && user) {
+          // Read token directly from localStorage/URL to get fresh value
+          const currentToken = localStorage.getItem("userTokenEvent") || searchParams.get("userToken");
+          
+          if (currentToken && !hasAttemptedLoginRef.current){
+            hasAttemptedLoginRef.current = true; // Set flag before API call
+            try{
+              const response = await axios.post(`${url}/api/auth/cas/login`, {userToken: currentToken, remember: false, serviceId: 'fms100642'}, {withCredentials:true});
+
+              if (response.data.success) {
+                setUser(response.data.user);
+                toast.success("Login successful!",{position:"top-center"})
+                navigate("/dashboard", {replace: true});
+              } else {
+                toast.error("Automatic login failed. Please login manually.",{position:"top-center"})
+              }
+            } catch (err){
+              toast.error("Automatic login failed. Please login manually.",{position:"top-center"})
+            }
+         
+          }
+
+          else if (hydrated && user) {
                 navigate("/dashboard", {replace: true});
             }
         }
 
         checkUser();    
 
-    }, [user, hydrated, navigate]);
+    }, [searchParams, hydrated, user, navigate]);
+    
+    window.addEventListener('message', (event)=>{
+      if (event.origin !== "http://localhost:5174") return;
+                
+      if (event.data.type === "login_success") {
+          const token = event.data.token;
+          localStorage.setItem("userTokenEvent", token);
+          window.location.reload();
+        }
+    })
 
   // Email validation function
   const validateEmail = (email) => {
@@ -502,6 +539,14 @@ export default function Login() {
               className="w-full py-2.5 sm:py-3 bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 dark:shadow-blue-500/20 dark:hover:shadow-blue-500/40 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-800 text-sm sm:text-base cursor-pointer"
             >
               {isSignUp ? 'Create Account' : 'Login'}
+            </button>
+            <button
+             className='w-full py-2.5 sm:py-3 bg-black hover:bg-gray-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-gray-500/30 hover:shadow-gray-500/50 dark:shadow-gray-500/20 dark:hover:shadow-gray-500/40 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-800 text-sm sm:text-base cursor-pointer'
+             onClick={() => {
+              window.open("http://localhost:5174/login?requesthost=fms100642", 'login', 'width=600,height=600');
+             }}
+            >
+              Login With CAS
             </button>
             <button type="button" onClick={()=>{navigate("/")}} className="w-full py-2.5 sm:py-3 bg-gray-500 hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-700 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-gray-500/30 hover:shadow-gray-500/50 dark:shadow-gray-500/20 dark:hover:shadow-gray-500/40 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-800 text-sm sm:text-base cursor-pointer">
               Back to Home
